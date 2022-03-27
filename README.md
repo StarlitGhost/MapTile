@@ -4,8 +4,8 @@ A Windower 4 addon that displays your current zone and map tile position as a dr
 It also tries to keep itself centered relative to where you place it (intended for placement above/below the ffxidb minimap).
 
 ## How to install:
-1. Download the repository
-2. Place in `Windower/addons/MapTile`
+1. Download the repository [here](https://github.com/StarlitGhost/MapTile/archive/refs/heads/master.zip)
+2. Extract and place in `Windower/addons/MapTile`
 
 ## How to make it load automatically:
 1. Open `Windower/scripts/init.txt` (create it if it doesn't exist)
