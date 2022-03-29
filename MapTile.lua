@@ -7,14 +7,14 @@ config = require('config')
 texts = require('texts')
 res = require('resources')
 
-windower_settings = windower.get_windower_settings()
-ui_scale = { x = windower_settings.x_res / windower_settings.ui_x_res , 
-             y = windower_settings.y_res / windower_settings.ui_y_res }
+local windower_settings = windower.get_windower_settings()
+local ui_scale = { x = windower_settings.x_res / windower_settings.ui_x_res ,
+                   y = windower_settings.y_res / windower_settings.ui_y_res }
 local LOGIN_ZONE_PACKET = 0x0A
 local STATUS_ID_CUTSCENES = 0x04
 local wait_for_pos = true
 
-defaults = {}
+local defaults = {}
 defaults.text = {}
 defaults.text.font = 'Arial'
 defaults.text.size = 10
@@ -39,12 +39,12 @@ maptile.hide = false
 maptile.txt = texts.new(settings)
 
 -- initialize addon
-function initialize()
+local function initialize()
     maptile.txt:text('${ZoneName|} ${MapTile|}')
     maptile.initialized = true
 end
 
-function update_maptile()
+local function update_maptile()
     local info = windower.ffxi.get_info()
     if not info.logged_in then
         return
@@ -75,12 +75,12 @@ function update_maptile()
 
     -- adjust the position to keep the text centered
     if width ~= maptile.PrevWidth then
-        offset = (maptile.PrevWidth - width) / 2
+        local offset = (maptile.PrevWidth - width) / 2
         -- skip offset changes smaller than 1 pixel
         if offset >= -0.5 and offset <= 0.5 then
             return
         end
-        new_pos_x = maptile.txt:pos_x() + offset
+        local new_pos_x = maptile.txt:pos_x() + offset
         --print('maptile prevWidth: '..maptile.PrevWidth..' width: '..width..' offset: '..offset..' new x: '..new_pos_x)
         maptile.txt:pos_x(new_pos_x)
         maptile.PrevWidth = width
@@ -88,25 +88,19 @@ function update_maptile()
 end
 
 -- hide the addon
-function hide()
+local function hide()
     maptile.txt:hide()
     maptile.ready = false
-
-    windower.send_command('unload ffxidb')
-    windower.send_command('wm icon off')
 end
 
 -- show the addon
-function show()
+local function show()
     if maptile.initialized == false then
         initialize()
     end
 
     maptile.txt:show()
     maptile.ready = true
-
-    windower.send_command('load ffxidb')
-    windower.send_command('wm icon on')
 end
 
 -- Bind Events
@@ -131,8 +125,7 @@ end)
 -- ON ZONE CHANGE
 windower.register_event('incoming chunk',function(id,org,_modi,_is_injected,_is_blocked)
     if (id == LOGIN_ZONE_PACKET) then
-        info = windower.ffxi.get_info()
-        if info.mog_house then
+        if windower.ffxi.get_info().mog_house then
             hide()
         end
     end
@@ -141,11 +134,10 @@ end)
 -- BEFORE EACH RENDER
 windower.register_event('prerender', function()
     local pos = windower.ffxi.get_position()
-    info = windower.ffxi.get_info()
     if pos == '(?-?)' then
         hide()
         wait_for_pos = true
-    elseif wait_for_pos and not info.mog_house then
+    elseif wait_for_pos and not windower.ffxi.get_info().mog_house then
         show()
         wait_for_pos = false
     end
