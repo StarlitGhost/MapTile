@@ -1,7 +1,7 @@
-_addon.name = 'MapTile'
+_addon.name = 'WhereAmI'
 _addon.author = 'Ghosty'
 _addon.version = '0.2'
-_addon.command = 'maptile'
+_addon.commands = {'whereami', 'wai'}
 
 config = require('config')
 texts = require('texts')
@@ -39,6 +39,12 @@ defaults.alignment = 'left'
 local settings = config.load(defaults)
 config.save(settings)
 
+local whereami = {}
+whereami.initialized = false
+whereami.ready = false
+whereami.hide = false
+whereami.txt = texts.new(settings.txt)
+
 -- display a | when dragging to help line things up with other UI elements
 local align_point = {}
 align_point.text = {}
@@ -54,99 +60,77 @@ align_point.bg = {}
 align_point.bg.visible = false
 align_point.flags = {}
 align_point.flags.bold = true
-
-local maptile = {}
-maptile.initialized = false
-maptile.ready = false
-maptile.hide = false
-maptile.txt = texts.new(settings.txt)
-
-maptile.align_point = texts.new('|', align_point)
-maptile.align_point:hide()
+whereami.align_point = texts.new('|', align_point)
+whereami.align_point:hide()
 
 -- initialize addon
 local function initialize()
-    maptile.txt:text('${ZoneName|} ${MapTile|}')
-    maptile.initialized = true
+    whereami.txt:text('${ZoneName|} ${MapTile|}')
+    whereami.initialized = true
 end
 
+-- un-abbreviate zone name suffixes
 local function replace_zone_abbreviations(zone_name)
     if string.match(zone_name,'%[S]') then
-        zone_name = string.gsub(zone_name,'%[S]','(Shadowreign)')
+        zone_name = string.gsub(zone_name,'%[S]','[Shadowreign]')
     elseif string.match(zone_name,'%[U]') then
-        zone_name = string.gsub(zone_name,'%[U]','(Skirmish)')
+        zone_name = string.gsub(zone_name,'%[U]','[Skirmish]')
     elseif string.match(zone_name,'%[D]') then
-        zone_name = string.gsub(zone_name,'%[D]','(Divergence)')
+        zone_name = string.gsub(zone_name,'%[D]','[Divergence]')
     end
     return zone_name
 end
 
-local function update_maptile()
+-- update the text string
+local function update_location()
     local info = windower.ffxi.get_info()
     if not info.logged_in then
         return
     end
 
     local pos = windower.ffxi.get_position()
-    maptile.MapTile = pos
+    whereami.MapTile = pos
 
     local zone_id = info.zone
     local zone_table = res.zones[zone_id]
-    maptile.ZoneName = nil
+    whereami.ZoneName = nil
     if (zone_table ~= nil) then
-        maptile.ZoneName = zone_table.en
+        whereami.ZoneName = zone_table.en
 
         if settings.replace_abbreviations then
-            maptile.ZoneName = replace_zone_abbreviations(maptile.ZoneName)
+            whereami.ZoneName = replace_zone_abbreviations(whereami.ZoneName)
         end
     end
 
-    maptile.txt:update(maptile)
+    whereami.txt:update(whereami)
 
-    local width, _ = maptile.txt:extents()
-
+    -- update the text position relative to the alignment
+    local width, _ = whereami.txt:extents()
     if settings.alignment == 'left' then
-        maptile.txt:pos_x(settings.position.x)
+        whereami.txt:pos_x(settings.position.x)
     elseif settings.alignment == 'center' then
         local offset_x = math.floor(width / 2)
-        maptile.txt:pos_x(settings.position.x - offset_x)
+        whereami.txt:pos_x(settings.position.x - offset_x)
     elseif settings.alignment == 'right' then
-        maptile.txt:pos_x(settings.position.x - width)
+        whereami.txt:pos_x(settings.position.x - width)
     end
-    maptile.txt:pos_y(settings.position.y)
-end
-
-local function update_position()
-    local width, _ = maptile.txt:extents()
-
-    if settings.alignment == 'left' then
-        settings.position.x = maptile.txt:pos_x()
-    elseif settings.alignment == 'center' then
-        settings.position.x = maptile.txt:pos_x() + math.floor(width / 2)
-    elseif settings.alignment == 'right' then
-        settings.position.x = maptile.txt:pos_x() + width
-    end
-    settings.position.y = maptile.txt:pos_y()
-
-    local ap_width, _ = maptile.align_point:extents()
-    local ap_offset = ap_width / 2
-    maptile.align_point:pos(settings.position.x - ap_offset, settings.position.y)
+    whereami.txt:pos_y(settings.position.y)
 end
 
 -- hide the addon
 local function hide()
-    maptile.txt:hide()
-    maptile.ready = false
+    whereami.txt:hide()
+    whereami.ready = false
 end
 
 -- show the addon
 local function show()
-    if maptile.initialized == false then
+    if whereami.initialized == false then
         initialize()
     end
 
-    maptile.txt:show()
-    maptile.ready = true
+    whereami.txt:show()
+    whereami.ready = true
 end
 
 -- Bind Events
@@ -188,34 +172,53 @@ windower.register_event('prerender', function()
         wait_for_pos = false
     end
 
-    if maptile.ready == false then
+    if whereami.ready == false then
         return
     end
 
-    update_maptile()
+    update_location()
 end)
 
 -- ENTER/EXIT CUTSCENES
 windower.register_event('status change', function(new_status_id)
-    if maptile.hide == false and (new_status_id == STATUS_ID_CUTSCENES) then
-        maptile.hide = true
+    if whereami.hide == false and (new_status_id == STATUS_ID_CUTSCENES) then
+        whereami.hide = true
         hide()
-    elseif maptile.hide and new_status_id ~= STATUS_ID_CUTSCENES then
-        maptile.hide = false
+    elseif whereami.hide and new_status_id ~= STATUS_ID_CUTSCENES then
+        whereami.hide = false
         show()
     end
 end)
 
+-- update the saved position relative to the alignment
+local function update_position()
+    local width, _ = whereami.txt:extents()
+
+    if settings.alignment == 'left' then
+        settings.position.x = whereami.txt:pos_x()
+    elseif settings.alignment == 'center' then
+        settings.position.x = whereami.txt:pos_x() + math.floor(width / 2)
+    elseif settings.alignment == 'right' then
+        settings.position.x = whereami.txt:pos_x() + width
+    end
+    settings.position.y = whereami.txt:pos_y()
+
+    local ap_width, _ = whereami.align_point:extents()
+    local ap_offset = ap_width / 2
+    whereami.align_point:pos(settings.position.x - ap_offset, settings.position.y)
+end
+
+-- MOUSE DRAGGING
 windower.register_event("mouse",function(type,x,y,delta,blocked)
-    if not maptile.txt:hover(x, y) then return false end
+    if not whereami.txt:hover(x, y) then return false end
 
 	if type == 1 then
 		mouse_on = true
-        maptile.align_point:show()
+        whereami.align_point:show()
 	end
 	if type == 2 then
 		mouse_on = false
-        maptile.align_point:hide()
+        whereami.align_point:hide()
 		config.save(settings)
 	end
 	if mouse_on then
@@ -223,18 +226,20 @@ windower.register_event("mouse",function(type,x,y,delta,blocked)
 	end
 end)
 
-local function printFF11( text )
+-- print to chat window
+local function print_wai( text )
 	windower.add_to_chat(207, windower.to_shift_jis(text))
 end
 
+-- ADDON CHAT COMMANDS
 windower.register_event("addon command", function(command, ...)
 	local args = L{ ... }
 
     local h = {}
-    h[#h+1] = "MapTile ".._addon.version
-    h[#h+1] = " //maptile align <left/center/right> - set the text alignment"
-    h[#h+1] = " //maptile expand <on/off/toggle> - expand abbreviations"
-    h[#h+1] = " //maptile reset - resets position and alignment to top left corner of UI"
+    h[#h+1] = "WhereAmI ".._addon.version
+    h[#h+1] = " //wai align <left/center/right> - set the text alignment"
+    h[#h+1] = " //wai expand <on/off/toggle> - expand abbreviations"
+    h[#h+1] = " //wai reset - resets position and alignment to top left corner of UI"
 
 	if command == 'help' or command == nil then
 		for _,tv in pairs(h) do
@@ -244,11 +249,11 @@ windower.register_event("addon command", function(command, ...)
 	elseif command == 'align' then
         local a = {['left']=true, ['center']=true, ['right']=true}
 		if not args:empty() and a[args[1]] ~= nil then
-            printFF11("MapTile text alignment changed: "..settings.alignment.." -> "..args[1])
+            print_wai("WhereAmI text alignment changed: "..settings.alignment.." -> "..args[1])
             settings.alignment = args[1]
-            update_maptile()
+            update_location()
         else
-            printFF11(h[2])
+            print_wai(h[2])
         end
 
 	elseif command == 'expand' then
@@ -262,23 +267,23 @@ windower.register_event("addon command", function(command, ...)
                 else
                     settings.replace_abbreviations = false
                 end
-                printFF11("MapTile abbreviation expansion: " .. (settings.replace_abbreviations and "on" or "off"))
-                update_maptile()
+                print_wai("WhereAmI abbreviation expansion: " .. (settings.replace_abbreviations and "on" or "off"))
+                update_location()
             else
-                printFF11(h[3])
+                print_wai(h[3])
             end
         else
             -- no args also toggles
     		settings.replace_abbreviations = not settings.replace_abbreviations
-            printFF11("MapTile abbreviation expansion: " .. (settings.replace_abbreviations and "on" or "off"))
-            update_maptile()
+            print_wai("WhereAmI abbreviation expansion: " .. (settings.replace_abbreviations and "on" or "off"))
+            update_location()
         end
 
     elseif command == 'reset' then
         settings.alignment = 'left'
         settings.position.x = 0
         settings.position.y = 0
-        update_maptile()
+        update_location()
 
     end
 

@@ -1,21 +1,23 @@
-# MapTile
+# WhereAmI
 A Windower 4 addon that displays your current zone and map tile position as a draggable text object.
 
-It also tries to keep itself centered relative to where you place it (intended for placement above/below the ffxidb minimap).
+(originally intended for placement above/below the ffxidb minimap, but you do you!)
 
 ## How to install:
-1. Download the repository [here](https://github.com/StarlitGhost/MapTile/archive/refs/heads/master.zip)
-2. Extract and place in `Windower/addons/MapTile`
+1. Download the repository [here](https://github.com/StarlitGhost/WhereAmI/archive/refs/heads/master.zip)
+2. Extract and place in `Windower/addons/WhereAmI`
 
 ## How to make it load automatically:
 1. Open `Windower/scripts/init.txt` (create it if it doesn't exist)
-2. Add the line `lua l maptile` to the end of it
+2. Add the line `lua l whereami` to the end of it
 
 ## How to manually enable in-game:
 1. Login to your character in FFXI
-2. Type `//lua l maptile` in chat
+2. Type `//lua l whereami` in chat
 
 ## Settings:
-For now, edit `Windower/addons/MapTile/data/settings.xml` and use `//lua r maptile` in-game.
+`//wai align <left/center/right>` set the text alignment
+`//wai expand <on/off/toggle>` - expand abbreviations
+`//wai reset` - resets position and alignment to top left corner of UI
 
-I'll be adding some `maptile` chat commands to set things in-game soon.
+For font/color settings, edit `Windower/addons/WhereAmI/data/settings.xml` and use `//lua r whereami` in-game.
