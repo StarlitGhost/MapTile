@@ -16,7 +16,7 @@ A Windower 4 addon that displays your current zone and map tile position as a dr
 2. Type `//lua l whereami` in chat
 
 ## Settings:
-- `//wai align <left/center/right>` set the text alignment
+- `//wai align <left/center/right>` - set the text alignment
 - `//wai expand <on/off/toggle>` - expand abbreviations
 - `//wai reset` - resets position and alignment to top left corner of UI
 
