@@ -1,11 +1,12 @@
 _addon.name = 'WhereAmI'
 _addon.author = 'Ghosty'
-_addon.version = '0.2'
+_addon.version = '0.3'
 _addon.commands = {'whereami', 'wai'}
 
 config = require('config')
 texts = require('texts')
 res = require('resources')
+require('logger')
 
 local LOGIN_ZONE_PACKET = 0x0A
 local STATUS_ID_CUTSCENES = 0x04
@@ -65,7 +66,7 @@ whereami.align_point:hide()
 
 -- initialize addon
 local function initialize()
-    whereami.txt:text('${ZoneName|} ${MapTile|}')
+    whereami.txt:text('${ZoneName|}${MapNumber|}${MapTile|}')
     whereami.initialized = true
 end
 
@@ -88,9 +89,6 @@ local function update_location()
         return
     end
 
-    local pos = windower.ffxi.get_position()
-    whereami.MapTile = pos
-
     local zone_id = info.zone
     local zone_table = res.zones[zone_id]
     whereami.ZoneName = nil
@@ -100,7 +98,28 @@ local function update_location()
         if settings.replace_abbreviations then
             whereami.ZoneName = replace_zone_abbreviations(whereami.ZoneName)
         end
+
+        whereami.ZoneName = whereami.ZoneName..' '
     end
+
+    local map_number, _, _ = windower.ffxi.get_map_data()
+    whereami.MapNumber = nil
+    if map_number >= 15 then
+        -- map numbers over 15 are used for basements
+        whereami.MapNumber = 'B'..(map_number-14)..' '
+    elseif map_number > 0 then
+        -- regular floors
+        whereami.MapNumber = '#'..map_number..' '
+    else
+        -- 0 means there's only one map, so hide the number
+        whereami.MapNumber = ''
+    end
+    -- TODO: map numbering is inconsistent, perhaps map out
+    --       {zone_id: [offset, basement_offset]} and use that?
+    --       it would also be nice to match the in-game map switcher numbering
+
+    local pos = windower.ffxi.get_position()
+    whereami.MapTile = pos
 
     whereami.txt:update(whereami)
 
@@ -226,9 +245,20 @@ windower.register_event("mouse",function(type,x,y,delta,blocked)
 	end
 end)
 
--- print to chat window
-local function print_wai( text )
-	windower.add_to_chat(207, windower.to_shift_jis(text))
+local function debug()
+    local info = windower.ffxi.get_info()
+    local zone_id = info.zone
+    local zone_table = res.zones[zone_id]
+    local zone_name = nil
+    if (zone_table ~= nil) then
+        zone_name = zone_table.en
+    end
+
+    local map_number, _, _ = windower.ffxi.get_map_data()
+
+    local pos = windower.ffxi.get_position()
+
+    log(("zone_id: %q, zone_name: %q, map_number: %q, pos: %q"):format(zone_id, zone_name, map_number, pos))
 end
 
 -- ADDON CHAT COMMANDS
@@ -249,11 +279,11 @@ windower.register_event("addon command", function(command, ...)
 	elseif command == 'align' then
         local a = {['left']=true, ['center']=true, ['right']=true}
 		if not args:empty() and a[args[1]] ~= nil then
-            print_wai("WhereAmI text alignment changed: "..settings.alignment.." -> "..args[1])
+            log("WhereAmI text alignment changed: "..settings.alignment.." -> "..args[1])
             settings.alignment = args[1]
             update_location()
         else
-            print_wai(h[2])
+            log(h[2])
         end
 
 	elseif command == 'expand' then
@@ -267,15 +297,15 @@ windower.register_event("addon command", function(command, ...)
                 else
                     settings.replace_abbreviations = false
                 end
-                print_wai("WhereAmI abbreviation expansion: " .. (settings.replace_abbreviations and "on" or "off"))
+                log("WhereAmI abbreviation expansion: " .. (settings.replace_abbreviations and "on" or "off"))
                 update_location()
             else
-                print_wai(h[3])
+                log(h[3])
             end
         else
             -- no args also toggles
     		settings.replace_abbreviations = not settings.replace_abbreviations
-            print_wai("WhereAmI abbreviation expansion: " .. (settings.replace_abbreviations and "on" or "off"))
+            log("WhereAmI abbreviation expansion: " .. (settings.replace_abbreviations and "on" or "off"))
             update_location()
         end
 
@@ -284,6 +314,9 @@ windower.register_event("addon command", function(command, ...)
         settings.position.x = 0
         settings.position.y = 0
         update_location()
+
+    elseif command == "debug" then
+        debug()
 
     end
 
