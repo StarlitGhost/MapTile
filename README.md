@@ -1,5 +1,5 @@
 # WhereAmI
-A Windower 4 addon that displays your current zone and map tile position as a draggable text object.
+A Windower 4 addon that displays your current zone, sub-map number, and map tile position as a draggable text object.
 
 (originally intended for placement above/below the ffxidb minimap, but you do you!)
 
