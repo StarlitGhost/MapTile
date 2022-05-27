@@ -180,10 +180,11 @@ windower.register_event('incoming chunk',function(id,org,_modi,_is_injected,_is_
     end
 end)
 
--- BEFORE EACH RENDER
-windower.register_event('prerender', function()
+-- AFTER EACH RENDER
+windower.register_event('postrender', function()
     local pos = windower.ffxi.get_position()
-    if pos == '(?-?)' then
+    local map_number, x, y = windower.ffxi.get_map_data()
+    if pos == '(?-?)' or (map_number == 0 and x == 0 and y == 0) then
         hide()
         wait_for_pos = true
     elseif wait_for_pos and not windower.ffxi.get_info().mog_house then
