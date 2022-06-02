@@ -3,10 +3,8 @@ _addon.author = 'Ghosty'
 _addon.version = '0.3'
 _addon.commands = {'whereami', 'wai'}
 
-config = require('config')
-texts = require('texts')
-res = require('resources')
-require('logger')
+require('luau')
+local texts = require('texts')
 
 local LOGIN_ZONE_PACKET = 0x0A
 local STATUS_ID_CUTSCENES = 0x04
